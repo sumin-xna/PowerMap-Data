@@ -4,28 +4,39 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TDMS UV Output Comparator</title>
-  <link rel="stylesheet" href="styles.css" />
-  <script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script defer src="app.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <style>
+    :root{
+      --bg:#f5f7fb;--panel:#fff;--ink:#172033;--muted:#667085;--line:#d9dee8;
+      --accent:#2457d6;--accent-dark:#163fa4;--soft:#eef3ff;--danger:#b42318;--ok:#067647;
+      --shadow:0 18px 50px rgba(16,24,40,.08)
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:radial-gradient(circle at top left,#e7eeff 0,transparent 32rem),var(--bg)}
+    .hero{padding:44px 24px 28px;max-width:1180px;margin:0 auto}.eyebrow{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:800}
+    h1{margin:0;font-size:clamp(32px,5vw,54px);line-height:1.02}.subtitle{max-width:850px;color:var(--muted);font-size:18px;line-height:1.55;margin:18px 0 0}
+    .shell{max-width:1180px;padding:0 24px 42px;margin:0 auto}.panel,.metric-card{background:rgba(255,255,255,.94);border:1px solid rgba(217,222,232,.9);border-radius:22px;box-shadow:var(--shadow)}
+    .upload-panel{padding:20px}.drop-zone{position:relative;border:2px dashed #aab7d9;border-radius:18px;min-height:205px;display:grid;place-items:center;text-align:center;padding:32px;background:linear-gradient(180deg,#fbfcff,#f3f6ff);cursor:pointer;transition:border-color .15s,background .15s,transform .15s}
+    .drop-zone.dragover{border-color:var(--accent);background:#edf3ff;transform:translateY(-1px)}.drop-zone input{display:none}.drop-zone h2{margin:8px 0 4px;font-size:24px}.drop-zone p{margin:0;color:var(--muted)}.drop-icon{font-size:44px;color:var(--accent);line-height:1}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button{border:0;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer;transition:transform .15s,opacity .15s,background .15s}button:hover:not(:disabled){transform:translateY(-1px)}button:disabled{opacity:.45;cursor:not-allowed}.primary{color:#fff;background:var(--accent)}.primary:hover:not(:disabled){background:var(--accent-dark)}.secondary{color:var(--ink);background:#e9edf7}
+    .privacy-note{color:var(--muted);margin:12px 2px 0;font-size:13px}.metrics-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:18px 0}.metric-card{padding:20px}.metric-card span{display:block;font-size:34px;font-weight:900}.metric-card label{display:block;margin-top:4px;color:var(--muted)}
+    .section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:22px 22px 0}.section-title h2{margin:0 0 4px}.section-title p{margin:0;color:var(--muted)}.filter-input{min-width:min(320px,100%);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:15px}
+    .status-box{margin:18px 22px 0;padding:12px 14px;background:var(--soft);color:#1f3a77;border-radius:12px;border:1px solid #d5e0ff}.status-box.error{color:var(--danger);background:#fff1f0;border-color:#ffd2cc}.status-box.ok{color:var(--ok);background:#ecfdf3;border-color:#abefc6}
+    .table-wrap{width:100%;overflow:auto;padding:18px 22px 22px}table{border-collapse:separate;border-spacing:0;width:100%;min-width:1120px;font-size:13px}th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top;background:#fff;max-width:360px}th:first-child,td:first-child{border-left:1px solid var(--line)}th{position:sticky;top:0;z-index:2;background:#f0f4ff;font-weight:900;white-space:nowrap;border-top:1px solid var(--line)}tr:first-child th:first-child{border-top-left-radius:12px}tr:first-child th:last-child{border-top-right-radius:12px}.notes-cell{min-width:360px;white-space:pre-wrap}.status-ok{color:var(--ok);font-weight:900}.status-error{color:var(--danger);font-weight:900}.role-select{min-width:118px;border:1px solid var(--line);border-radius:10px;padding:7px 9px;background:#fff;color:var(--ink);font-weight:800}.diff-panel,.details-panel{margin-top:18px}.details-panel{padding:18px 22px}details summary{cursor:pointer;font-weight:900}.small-table{padding:16px 0 0}.small-table table{min-width:720px}.footer{max-width:1180px;padding:0 24px 36px;margin:0 auto;color:var(--muted);font-size:13px}
+    @media(max-width:760px){.section-title{flex-direction:column}.metrics-grid{grid-template-columns:1fr}.actions button{width:100%}}
+  </style>
 </head>
 <body>
   <header class="hero">
-    <div>
-      <p class="eyebrow">PowerMAP / TDMS browser tool</p>
-      <h1>TDMS UV Output Comparator</h1>
-      <p class="subtitle">
-        Drop TDMS files, extract metadata and UV outputs, mark rows as Control or Test,
-        and download a multi-sheet Excel workbook. Files are processed locally in your browser.
-      </p>
-    </div>
+    <p class="eyebrow">PowerMAP / TDMS browser tool · single-file HTML</p>
+    <h1>TDMS UV Output Comparator</h1>
+    <p class="subtitle">Drop TDMS files, extract metadata and UV outputs, mark rows as Control or Test, and download a multi-sheet Excel workbook. Files are processed locally in your browser. Raw TDMS UV values are multiplied by <strong>1000</strong> and shown in the original requested units: <strong>mJ/cm²</strong> and <strong>mW/cm²</strong>.</p>
   </header>
 
   <main class="shell">
     <section class="panel upload-panel">
       <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Drop TDMS files or click to select files">
-        <div class="drop-icon">⇩</div>
-        <h2>Drop .tdms files here</h2>
-        <p>or click to choose files</p>
+        <div><div class="drop-icon">⇩</div><h2>Drop .tdms files here</h2><p>or click to choose files</p></div>
         <input id="fileInput" type="file" accept=".tdms" multiple />
       </div>
       <div class="actions">
@@ -37,26 +48,14 @@
     </section>
 
     <section class="metrics-grid" aria-label="Summary metrics">
-      <article class="metric-card">
-        <span id="filesRead">0</span>
-        <label>Files read</label>
-      </article>
-      <article class="metric-card">
-        <span id="filesParsed">0</span>
-        <label>Parsed successfully</label>
-      </article>
-      <article class="metric-card">
-        <span id="filesWithErrors">0</span>
-        <label>Files with errors</label>
-      </article>
+      <article class="metric-card"><span id="filesRead">0</span><label>Files read</label></article>
+      <article class="metric-card"><span id="filesParsed">0</span><label>Parsed successfully</label></article>
+      <article class="metric-card"><span id="filesWithErrors">0</span><label>Files with errors</label></article>
     </section>
 
     <section class="panel">
       <div class="section-title">
-        <div>
-          <h2>Comparison table</h2>
-          <p>One row per TDMS file. Use the Role dropdown to mark multiple controls and tests.</p>
-        </div>
+        <div><h2>Comparison table</h2><p>One row per TDMS file. Use the Role dropdown to mark multiple controls and tests.</p></div>
         <input id="filterInput" class="filter-input" type="search" placeholder="Filter rows..." disabled />
       </div>
       <div id="statusBox" class="status-box">Upload TDMS files to begin.</div>
@@ -64,26 +63,80 @@
     </section>
 
     <section class="panel diff-panel">
-      <div class="section-title">
-        <div>
-          <h2>Test vs control percent differences</h2>
-          <p>Controls are averaged when multiple rows are marked as Control. Percent difference = (test - control average) / control average × 100.</p>
-        </div>
-      </div>
+      <div class="section-title"><div><h2>Test vs control percent differences</h2><p>Controls are averaged when multiple rows are marked as Control. Percent difference = (test - control average) / control average × 100.</p></div></div>
       <div id="diffStatusBox" class="status-box">Upload files, then mark rows as Control or Test to preview percent differences.</div>
       <div id="diffTableWrap" class="table-wrap"></div>
     </section>
 
     <section class="panel details-panel">
-      <details>
-        <summary>Channel-by-channel details</summary>
-        <div id="detailTableWrap" class="table-wrap small-table"></div>
-      </details>
+      <details><summary>Channel-by-channel details</summary><div id="detailTableWrap" class="table-wrap small-table"></div></details>
     </section>
   </main>
 
-  <footer class="footer">
-    <p>Static GitHub Pages app. Best for PowerMAP TDMS files with UV channel properties named Energy Density and Peak Irradiance. UV units are labeled J/cm^2 and W/cm^2.</p>
-  </footer>
+  <footer class="footer"><p>Static GitHub Pages app. Best for PowerMAP TDMS files with UV channel properties named Energy Density and Peak Irradiance. Raw TDMS UV values are multiplied by 1000 and labeled mJ/cm² and mW/cm².</p></footer>
+
+<script>
+const TDMS_TYPE={INT8:0x01,INT16:0x02,INT32:0x03,INT64:0x04,UINT8:0x05,UINT16:0x06,UINT32:0x07,UINT64:0x08,SINGLE:0x09,DOUBLE:0x0A,STRING:0x20,BOOLEAN:0x21,TIMESTAMP:0x44};
+const NO_RAW_DATA=0xFFFFFFFF,SAME_RAW_DATA=0x00000000;
+const CHANNELS=["UVA","UVB","UVC","UVV"],ROLES=["Unassigned","Control","Test"];
+const ENERGY_LABEL="Energy Density (mJ/cm^2)",PEAK_LABEL="Peak Irradiance (mW/cm^2)",UV_SCALE=1000;
+const BASE_COLUMNS=["Role","File Name","TDMS Name","Serial Number","Calibration Date","Date of Measurement","Notes","Model","Unit Type","Range","UV Sample Rate Hz"];
+const OPTIONAL_COLUMNS=["Board Temperature","Battery Voltage","Firmware Version","PM2 Firmware Ver","TC Used","Read Status"];
+const state={rows:[],channelRows:[],filter:""};
+
+class TdmsMetadataParser{
+  constructor(buffer){this.buffer=buffer;this.view=new DataView(buffer);this.decoder=new TextDecoder("utf-8");this.objects=new Map();this.warnings=[]}
+  parse(){let segmentStart=0,segmentNumber=0;while(segmentStart+28<=this.buffer.byteLength){if(this.ascii(segmentStart,4)!=="TDSm"){if(segmentNumber===0)throw new Error("This does not look like a TDMS file; missing TDSm header.");break}const nextOffset=this.u64Number(segmentStart+12),rawOffset=this.u64Number(segmentStart+20);const metadataStart=segmentStart+28,nextStart=Number.isFinite(nextOffset)?segmentStart+28+nextOffset:this.buffer.byteLength;const metadataEnd=Number.isFinite(rawOffset)?Math.min(metadataStart+rawOffset,this.buffer.byteLength):Math.min(nextStart,this.buffer.byteLength);if(metadataEnd>metadataStart){try{this.parseMetadata(metadataStart,metadataEnd)}catch(e){this.warnings.push(`Segment ${segmentNumber+1}: ${e.message}`)}}if(!Number.isFinite(nextOffset)||nextStart<=segmentStart)break;segmentStart=Math.min(nextStart,this.buffer.byteLength);segmentNumber++}return this}
+  parseMetadata(pos,end){if(pos+4>end)return;const objectCount=this.u32(pos);pos+=4;for(let i=0;i<objectCount;i++){let r=this.readString(pos,end);const path=r.value;pos=r.next;if(pos+4>end)throw new Error(`Unexpected end while reading raw data index for ${path}`);const rawDataIndex=this.u32(pos);pos+=4;if(rawDataIndex!==NO_RAW_DATA&&rawDataIndex!==SAME_RAW_DATA){const skip=rawDataIndex-4;if(skip<0||pos+skip>end)throw new Error(`Unsupported or corrupt raw data index for ${path}`);pos+=skip}if(pos+4>end)throw new Error(`Unexpected end while reading property count for ${path}`);const propCount=this.u32(pos);pos+=4;const props=this.ensure(path);for(let j=0;j<propCount;j++){r=this.readString(pos,end);const name=r.value;pos=r.next;if(pos+4>end)throw new Error(`Unexpected end while reading property type for ${name}`);const type=this.u32(pos);pos+=4;r=this.readValue(pos,type,end);props[name]=r.value;pos=r.next}}}
+  ensure(path){if(!this.objects.has(path))this.objects.set(path,{});return this.objects.get(path)}
+  ascii(pos,len){let s="";for(let i=0;i<len;i++)s+=String.fromCharCode(this.view.getUint8(pos+i));return s}
+  readString(pos,end){if(pos+4>end)throw new Error("Unexpected end while reading string length.");const len=this.u32(pos);pos+=4;if(pos+len>end)throw new Error("Unexpected end while reading string value.");return{value:this.decoder.decode(new Uint8Array(this.buffer,pos,len)),next:pos+len}}
+  readValue(pos,type,end){switch(type){case TDMS_TYPE.INT8:return{value:this.view.getInt8(pos),next:pos+1};case TDMS_TYPE.INT16:return{value:this.view.getInt16(pos,true),next:pos+2};case TDMS_TYPE.INT32:return{value:this.view.getInt32(pos,true),next:pos+4};case TDMS_TYPE.INT64:return{value:this.i64(pos),next:pos+8};case TDMS_TYPE.UINT8:return{value:this.view.getUint8(pos),next:pos+1};case TDMS_TYPE.UINT16:return{value:this.view.getUint16(pos,true),next:pos+2};case TDMS_TYPE.UINT32:return{value:this.view.getUint32(pos,true),next:pos+4};case TDMS_TYPE.UINT64:return{value:this.u64(pos),next:pos+8};case TDMS_TYPE.SINGLE:return{value:this.view.getFloat32(pos,true),next:pos+4};case TDMS_TYPE.DOUBLE:return{value:this.view.getFloat64(pos,true),next:pos+8};case TDMS_TYPE.STRING:return this.readString(pos,end);case TDMS_TYPE.BOOLEAN:return{value:Boolean(this.view.getUint8(pos)),next:pos+1};case TDMS_TYPE.TIMESTAMP:return{value:this.timestamp(pos),next:pos+16};default:throw new Error(`Unsupported TDMS property type 0x${type.toString(16)}`)}}
+  timestamp(pos){const frac=this.view.getBigUint64(pos,true),sec=this.view.getBigInt64(pos+8,true);const ms=Number(frac*1000n/(1n<<64n));return new Date(Date.UTC(1904,0,1)+Number(sec)*1000+ms).toISOString().replace(".000Z","Z")}
+  u32(pos){return this.view.getUint32(pos,true)}
+  u64Number(pos){const v=this.view.getBigUint64(pos,true);if(v===0xFFFFFFFFFFFFFFFFn||v>BigInt(Number.MAX_SAFE_INTEGER))return Infinity;return Number(v)}
+  u64(pos){const v=this.view.getBigUint64(pos,true);return v<=BigInt(Number.MAX_SAFE_INTEGER)?Number(v):v.toString()}
+  i64(pos){const v=this.view.getBigInt64(pos,true);return v<=BigInt(Number.MAX_SAFE_INTEGER)&&v>=BigInt(Number.MIN_SAFE_INTEGER)?Number(v):v.toString()}
+}
+
+function parseObjectPath(path){if(path==="/")return[];const out=[];const re=/'((?:[^']|'')*)'/g;let m;while((m=re.exec(path))!==null)out.push(m[1].replace(/''/g,"'"));return out}
+function getProp(props,...names){if(!props)return undefined;const map=new Map(Object.keys(props).map(k=>[k.trim().toLowerCase(),k]));for(const n of names){const k=map.get(String(n).trim().toLowerCase());if(k!==undefined)return props[k]}return undefined}
+function normChannel(x){return String(x||"").trim().replace(/\s+/g," ").toUpperCase()}
+function energyCol(ch){return `${ch} ${ENERGY_LABEL}`}function peakCol(ch){return `${ch} ${PEAK_LABEL}`}function isInternal(col){return String(col||"").startsWith("__")}
+function fmt(v){if(v===undefined||v===null)return"";if(typeof v==="number"){if(!Number.isFinite(v))return"";return Math.abs(v)>=10000?Number(v.toFixed(3)):Number(v.toFixed(6))}if(typeof v==="boolean")return v?"TRUE":"FALSE";return String(v)}
+function scaleUv(v){if(v===undefined||v===null||v==="")return"";const n=typeof v==="number"?v:Number(String(v).replace(/,/g,"").trim());return Number.isFinite(n)?fmt(n*UV_SCALE):fmt(v)}
+function num(v){if(v===undefined||v===null||v==="")return null;const n=typeof v==="number"?v:Number(String(v).replace(/,/g,"").trim());return Number.isFinite(n)?n:null}
+function round(v,d=6){return v===null||v===undefined||!Number.isFinite(v)?"":Number(v.toFixed(d))}
+function isUvChannel(path,props){const parts=parseObjectPath(path);const group=(parts[0]||"").toLowerCase();const ch=normChannel(getProp(props,"NI_ChannelName")||parts[1]||"");return parts.length>=2&&(group.includes("uv signal")||CHANNELS.includes(ch)||getProp(props,"Energy Density","Energy density")!==undefined||getProp(props,"Peak Irradiance","Peak irradiance")!==undefined)}
+
+function extractSummary(buffer,fileName){const parser=new TdmsMetadataParser(buffer).parse();const root=parser.objects.get("/")||{};const row={"Role":"Unassigned","File Name":fileName,"TDMS Name":fmt(getProp(root,"name"))||fileName.replace(/\.tdms$/i,""),"Serial Number":fmt(getProp(root,"Serial Number")),"Calibration Date":fmt(getProp(root,"Calibration Date")),"Date of Measurement":fmt(getProp(root,"Date & Time","Date and Time","Measurement Date")),"Notes":fmt(getProp(root,"Notes")),"Model":fmt(getProp(root,"Model")),"Unit Type":fmt(getProp(root,"Unit Type")),"Range":fmt(getProp(root,"Range")),"UV Sample Rate Hz":fmt(getProp(root,"sample_rate","Sample Rate")),"Board Temperature":fmt(getProp(root,"Board Temperature")),"Battery Voltage":fmt(getProp(root,"Battery Voltage")),"Firmware Version":fmt(getProp(root,"Firmware Version")),"PM2 Firmware Ver":fmt(getProp(root,"PM2 Firmware Ver")),"TC Used":fmt(getProp(root,"TC_used","TC Used"))};
+  const channelRows=[];let count=0;for(const [path,props] of parser.objects.entries()){if(!isUvChannel(path,props))continue;count++;const parts=parseObjectPath(path);const ch=normChannel(getProp(props,"NI_ChannelName")||parts[1]||`UV ${count}`);const energy=scaleUv(getProp(props,"Energy Density","Energy density"));const peak=scaleUv(getProp(props,"Peak Irradiance","Peak irradiance"));const start=fmt(getProp(props,"wf_start_time"));const inc=fmt(getProp(props,"wf_increment"));const samples=fmt(getProp(props,"wf_samples"));row[energyCol(ch)]=energy;row[peakCol(ch)]=peak;if(!row["Date of Measurement"]&&start)row["Date of Measurement"]=start;channelRows.push({"File Name":fileName,"TDMS Name":row["TDMS Name"],"Channel":ch,[ENERGY_LABEL]:energy,[PEAK_LABEL]:peak,"Waveform Start Time":start,"Samples":samples,"Waveform Increment (s)":inc})}
+  row["Read Status"]=count>0?"OK":"No UV channels found";if(parser.warnings.length)row["Read Status"]+=`; warnings: ${parser.warnings.join(" | ")}`;return{row,channelRows}}
+
+function orderedColumns(rows){const all=new Set();rows.forEach(r=>Object.keys(r).forEach(c=>{if(!isInternal(c))all.add(c)}));const out=[];BASE_COLUMNS.forEach(c=>{if(all.has(c))out.push(c)});CHANNELS.forEach(ch=>[ENERGY_LABEL,PEAK_LABEL].forEach(m=>{const c=`${ch} ${m}`;if(all.has(c))out.push(c)}));[...all].filter(c=>!out.includes(c)&&(c.includes("Energy Density")||c.includes("Peak Irradiance"))).sort().forEach(c=>out.push(c));OPTIONAL_COLUMNS.forEach(c=>{if(all.has(c)&&!out.includes(c))out.push(c)});[...all].filter(c=>!out.includes(c)).forEach(c=>out.push(c));return out}
+function metricColumns(rows){return orderedColumns(rows).filter(c=>c.includes("Energy Density")||c.includes("Peak Irradiance"))}
+function controlRows(rows){return rows.filter(r=>r.Role==="Control")}function testRows(rows){return rows.filter(r=>r.Role==="Test")}
+function controlSummary(rows){const controls=controlRows(rows),metrics=metricColumns(rows);return metrics.map(metric=>{const values=controls.map(r=>num(r[metric])).filter(v=>v!==null);const avg=values.length?values.reduce((a,b)=>a+b,0)/values.length:null;return{"Metric":metric,"Control Count Used":values.length,"Control Average":round(avg),"Control Min":values.length?round(Math.min(...values)):"","Control Max":values.length?round(Math.max(...values)):"","Control Files":controls.map(r=>r["File Name"]).join("; ")}})}
+function diffRows(rows){const controls=controlRows(rows),tests=testRows(rows),metrics=metricColumns(rows),summary=new Map(controlSummary(rows).map(r=>[r.Metric,r]));return tests.map(t=>{const out={"Test File Name":t["File Name"]||"","Test TDMS Name":t["TDMS Name"]||"","Controls Used":controls.map(r=>r["File Name"]).join("; "),"Number of Control Files":controls.length};metrics.forEach(metric=>{const tv=num(t[metric]),ca=num(summary.get(metric)?.["Control Average"]);out[`${metric} - Test Value`]=round(tv);out[`${metric} - Control Average`]=round(ca);out[`${metric} - % Difference vs Control Avg`]=tv!==null&&ca!==null&&ca!==0?round((tv-ca)/ca*100,3):""});return out})}
+function clean(rows,cols){return rows.map(r=>Object.fromEntries(cols.map(c=>[c,r[c]??""])))}
+function emptyMsg(msg){return[{Message:msg}]}
+function makeId(){return crypto?.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random().toString(16).slice(2)}`}
+function escapeHtml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\"/g,"&quot;").replace(/'/g,"&#039;")}
+function csv(rows,cols){const q=v=>{const t=v===undefined||v===null?"":String(v);return /[",\n\r]/.test(t)?`"${t.replace(/"/g,'""')}"`:t};return[cols.map(q).join(","),...rows.map(r=>cols.map(c=>q(r[c])).join(","))].join("\n")}
+function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url)}
+function stamp(){return new Date().toISOString().slice(0,19).replace(/[-:T]/g,"")}
+
+const dropZone=document.getElementById("dropZone"),fileInput=document.getElementById("fileInput"),clearBtn=document.getElementById("clearBtn"),downloadCsvBtn=document.getElementById("downloadCsvBtn"),downloadExcelBtn=document.getElementById("downloadExcelBtn"),filterInput=document.getElementById("filterInput"),statusBox=document.getElementById("statusBox"),tableWrap=document.getElementById("tableWrap"),detailTableWrap=document.getElementById("detailTableWrap"),diffStatusBox=document.getElementById("diffStatusBox"),diffTableWrap=document.getElementById("diffTableWrap"),filesRead=document.getElementById("filesRead"),filesParsed=document.getElementById("filesParsed"),filesWithErrors=document.getElementById("filesWithErrors");
+function filtered(){const q=state.filter.trim().toLowerCase();return q?state.rows.filter(r=>Object.values(r).some(v=>String(v||"").toLowerCase().includes(q))):state.rows}
+function renderTable(rows,wrap,cols=null,opt={}){if(!rows.length){wrap.innerHTML="";return}cols=cols||orderedColumns(rows);let html="<table><thead><tr>"+cols.map(c=>`<th>${escapeHtml(c)}</th>`).join("")+"</tr></thead><tbody>";rows.forEach(r=>{html+="<tr>";cols.forEach(c=>{const v=r[c]??"",classes=[];if(c==="Notes")classes.push("notes-cell");if(c==="Read Status"&&String(v).startsWith("OK"))classes.push("status-ok");if(c==="Read Status"&&!String(v).startsWith("OK"))classes.push("status-error");if(opt.roleSelect&&c==="Role"){html+=`<td class="${classes.join(" ")}"><select class="role-select" data-row-id="${escapeHtml(r.__id||"")}">${ROLES.map(role=>`<option value="${escapeHtml(role)}"${role===v?" selected":""}>${escapeHtml(role)}</option>`).join("")}</select></td>`}else html+=`<td class="${classes.join(" ")}">${escapeHtml(v)}</td>`});html+="</tr>"});wrap.innerHTML=html+"</tbody></table>"}
+function render(){const rows=filtered(),ok=state.rows.filter(r=>String(r["Read Status"]||"").startsWith("OK")).length,err=state.rows.length-ok;filesRead.textContent=state.rows.length;filesParsed.textContent=ok;filesWithErrors.textContent=err;[clearBtn,downloadCsvBtn,downloadExcelBtn,filterInput].forEach(el=>el.disabled=state.rows.length===0);if(!state.rows.length){statusBox.className="status-box";statusBox.textContent="Upload TDMS files to begin."}else if(err){statusBox.className="status-box error";statusBox.textContent=`${ok} file(s) parsed successfully; ${err} file(s) had warnings/errors. See Read Status column.`}else{statusBox.className="status-box ok";statusBox.textContent=`${ok} file(s) parsed successfully.`}renderTable(rows,tableWrap,null,{roleSelect:true});renderTable(state.channelRows,detailTableWrap,["File Name","TDMS Name","Channel",ENERGY_LABEL,PEAK_LABEL,"Waveform Start Time","Samples","Waveform Increment (s)"]);const controls=controlRows(state.rows),tests=testRows(state.rows),diff=diffRows(state.rows);if(!state.rows.length){diffStatusBox.className="status-box";diffStatusBox.textContent="Upload files, then mark rows as Control or Test to preview percent differences."}else if(!controls.length||!tests.length){diffStatusBox.className="status-box";diffStatusBox.textContent=`Marked controls: ${controls.length}; marked tests: ${tests.length}. Select at least one control and one test to calculate percent differences.`;diffTableWrap.innerHTML=""}else{diffStatusBox.className="status-box ok";diffStatusBox.textContent=`Percent differences use the average of ${controls.length} selected control file(s). Formula: (test - control average) / control average × 100.`;renderTable(diff,diffTableWrap)}}
+async function handleFiles(fileList){const files=Array.from(fileList||[]).filter(f=>f.name.toLowerCase().endsWith(".tdms"));if(!files.length)return;statusBox.textContent="Reading TDMS files...";for(const file of files){try{const buffer=await file.arrayBuffer();const {row,channelRows}=extractSummary(buffer,file.name);row.__id=makeId();state.rows.push(row);state.channelRows.push(...channelRows)}catch(e){state.rows.push({__id:makeId(),Role:"Unassigned","File Name":file.name,"TDMS Name":file.name.replace(/\.tdms$/i,""),"Read Status":`ERROR: ${e.message||e}`})}}fileInput.value="";render()}
+
+dropZone.addEventListener("click",()=>fileInput.click());dropZone.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" ")fileInput.click()});fileInput.addEventListener("change",e=>handleFiles(e.target.files));["dragenter","dragover"].forEach(t=>dropZone.addEventListener(t,e=>{e.preventDefault();dropZone.classList.add("dragover")}));["dragleave","drop"].forEach(t=>dropZone.addEventListener(t,e=>{e.preventDefault();dropZone.classList.remove("dragover")}));dropZone.addEventListener("drop",e=>handleFiles(e.dataTransfer.files));
+clearBtn.addEventListener("click",()=>{state.rows=[];state.channelRows=[];state.filter="";filterInput.value="";render()});filterInput.addEventListener("input",e=>{state.filter=e.target.value;render()});tableWrap.addEventListener("change",e=>{if(!e.target.classList.contains("role-select"))return;const row=state.rows.find(r=>r.__id===e.target.getAttribute("data-row-id"));if(row){row.Role=e.target.value;render()}});
+downloadCsvBtn.addEventListener("click",()=>{if(!state.rows.length)return;const cols=orderedColumns(state.rows);downloadBlob(new Blob([csv(state.rows,cols)],{type:"text/csv;charset=utf-8"}),`tdms_uv_comparison_${stamp()}.csv`)});
+downloadExcelBtn.addEventListener("click",()=>{if(!state.rows.length)return;if(typeof XLSX==="undefined"){alert("Excel library did not load. Use Download CSV, or check the internet connection and refresh the page.");return}const wb=XLSX.utils.book_new();const cols=orderedColumns(state.rows),comparison=clean(state.rows,cols),ws=XLSX.utils.json_to_sheet(comparison,{header:cols});ws["!cols"]=cols.map(c=>({wch:c==="Notes"?55:Math.min(Math.max(c.length+4,14),34)}));ws["!autofilter"]={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:state.rows.length,c:cols.length-1}})};XLSX.utils.book_append_sheet(wb,ws,"TDMS Comparison");const detailCols=["File Name","TDMS Name","Channel",ENERGY_LABEL,PEAK_LABEL,"Waveform Start Time","Samples","Waveform Increment (s)"],detail=state.channelRows.length?clean(state.channelRows,detailCols):emptyMsg("No channel-level rows were found."),detailWs=XLSX.utils.json_to_sheet(detail,{header:state.channelRows.length?detailCols:["Message"]});XLSX.utils.book_append_sheet(wb,detailWs,"Channel Details");const controls=controlRows(state.rows).length?controlSummary(state.rows):emptyMsg("No rows were marked as Control when this workbook was created."),controlWs=XLSX.utils.json_to_sheet(controls);XLSX.utils.book_append_sheet(wb,controlWs,"Control Averages");const diff=diffRows(state.rows),diffSheet=diff.length?diff:emptyMsg("Mark at least one row as Control and one row as Test before downloading to calculate percent differences."),diffWs=XLSX.utils.json_to_sheet(diffSheet);XLSX.utils.book_append_sheet(wb,diffWs,"Test vs Control % Diff");XLSX.writeFile(wb,`tdms_uv_comparison_${stamp()}.xlsx`)});
+render();
+</script>
 </body>
 </html>
