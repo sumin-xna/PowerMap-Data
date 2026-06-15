@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TDMS UV Output Comparator</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script defer src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header class="hero">
+    <div>
+      <p class="eyebrow">PowerMAP / TDMS browser tool</p>
+      <h1>TDMS UV Output Comparator</h1>
+      <p class="subtitle">
+        Drop TDMS files, extract metadata and UV outputs, compare them in one table,
+        and download a single Excel workbook. Files are processed locally in your browser.
+      </p>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="panel upload-panel">
+      <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="Drop TDMS files or click to select files">
+        <div class="drop-icon">⇩</div>
+        <h2>Drop .tdms files here</h2>
+        <p>or click to choose files</p>
+        <input id="fileInput" type="file" accept=".tdms" multiple />
+      </div>
+      <div class="actions">
+        <button id="clearBtn" class="secondary" type="button" disabled>Clear</button>
+        <button id="downloadCsvBtn" class="secondary" type="button" disabled>Download CSV</button>
+        <button id="downloadExcelBtn" class="primary" type="button" disabled>Download Excel</button>
+      </div>
+      <p class="privacy-note">Privacy note: TDMS files do not upload to a server. Parsing and Excel generation happen in this page.</p>
+    </section>
+
+    <section class="metrics-grid" aria-label="Summary metrics">
+      <article class="metric-card">
+        <span id="filesRead">0</span>
+        <label>Files read</label>
+      </article>
+      <article class="metric-card">
+        <span id="filesParsed">0</span>
+        <label>Parsed successfully</label>
+      </article>
+      <article class="metric-card">
+        <span id="filesWithErrors">0</span>
+        <label>Files with errors</label>
+      </article>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <div>
+          <h2>Comparison table</h2>
+          <p>One row per TDMS file. Use the Excel download for filtering and sharing.</p>
+        </div>
+        <input id="filterInput" class="filter-input" type="search" placeholder="Filter rows..." disabled />
+      </div>
+      <div id="statusBox" class="status-box">Upload TDMS files to begin.</div>
+      <div id="tableWrap" class="table-wrap"></div>
+    </section>
+
+    <section class="panel details-panel">
+      <details>
+        <summary>Channel-by-channel details</summary>
+        <div id="detailTableWrap" class="table-wrap small-table"></div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Static GitHub Pages app. Best for PowerMAP TDMS files with UV channel properties named Energy Density and Peak Irradiance.</p>
+  </footer>
+</body>
+</html>
