@@ -216,3 +216,16 @@ details summary { cursor: pointer; font-weight: 800; }
   .metrics-grid { grid-template-columns: 1fr; }
   .actions button { width: 100%; }
 }
+
+
+.role-select {
+  min-width: 118px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 7px 9px;
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.diff-panel { margin-top: 18px; }

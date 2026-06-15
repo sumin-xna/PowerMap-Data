@@ -14,8 +14,8 @@
       <p class="eyebrow">PowerMAP / TDMS browser tool</p>
       <h1>TDMS UV Output Comparator</h1>
       <p class="subtitle">
-        Drop TDMS files, extract metadata and UV outputs, compare them in one table,
-        and download a single Excel workbook. Files are processed locally in your browser.
+        Drop TDMS files, extract metadata and UV outputs, mark rows as Control or Test,
+        and download a multi-sheet Excel workbook. Files are processed locally in your browser.
       </p>
     </div>
   </header>
@@ -55,12 +55,25 @@
       <div class="section-title">
         <div>
           <h2>Comparison table</h2>
-          <p>One row per TDMS file. Use the Excel download for filtering and sharing.</p>
+          <p>One row per TDMS file. Use the Role dropdown to mark multiple controls and tests.</p>
         </div>
         <input id="filterInput" class="filter-input" type="search" placeholder="Filter rows..." disabled />
       </div>
       <div id="statusBox" class="status-box">Upload TDMS files to begin.</div>
       <div id="tableWrap" class="table-wrap"></div>
+    </section>
+
+
+
+    <section class="panel diff-panel">
+      <div class="section-title">
+        <div>
+          <h2>Test vs control percent differences</h2>
+          <p>Controls are averaged when multiple rows are marked as Control. Percent difference = (test - control average) / control average × 100.</p>
+        </div>
+      </div>
+      <div id="diffStatusBox" class="status-box">Upload files, then mark rows as Control or Test to preview percent differences.</div>
+      <div id="diffTableWrap" class="table-wrap"></div>
     </section>
 
     <section class="panel details-panel">
@@ -72,7 +85,7 @@
   </main>
 
   <footer class="footer">
-    <p>Static GitHub Pages app. Best for PowerMAP TDMS files with UV channel properties named Energy Density and Peak Irradiance.</p>
+    <p>Static GitHub Pages app. Best for PowerMAP TDMS files with UV channel properties named Energy Density and Peak Irradiance. UV units are labeled J/cm^2 and W/cm^2.</p>
   </footer>
 </body>
 </html>

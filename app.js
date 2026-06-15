@@ -1,6 +1,6 @@
 /* TDMS UV Output Comparator
    Static browser app for PowerMAP TDMS files.
-   Parses TDMS metadata/properties in the browser and exports a single Excel sheet.
+   Parses TDMS metadata/properties in the browser and exports an Excel workbook with comparison and test/control sheets.
 */
 
 const TDMS_TYPE = Object.freeze({
@@ -22,8 +22,16 @@ const TDMS_TYPE = Object.freeze({
 const NO_RAW_DATA = 0xFFFFFFFF;
 const SAME_RAW_DATA = 0x00000000;
 const PREFERRED_UV_CHANNEL_ORDER = ["UVA", "UVB", "UVC", "UVV"];
+const ENERGY_METRIC_LABEL = "Energy Density (J/cm^2)";
+const PEAK_METRIC_LABEL = "Peak Irradiance (W/cm^2)";
+const ROLE_VALUES = ["Unassigned", "Control", "Test"];
+
+function energyColumn(channel) { return `${channel} ${ENERGY_METRIC_LABEL}`; }
+function peakColumn(channel) { return `${channel} ${PEAK_METRIC_LABEL}`; }
+function isInternalColumn(col) { return String(col || "").startsWith("__"); }
 
 const BASE_COLUMNS = [
+  "Role",
   "File Name",
   "TDMS Name",
   "Serial Number",
@@ -268,6 +276,7 @@ function extractSummaryFromArrayBuffer(arrayBuffer, fileName) {
     "Unit Type": displayValue(getPropCaseInsensitive(root, "Unit Type")),
     "Range": displayValue(getPropCaseInsensitive(root, "Range")),
     "UV Sample Rate Hz": displayValue(getPropCaseInsensitive(root, "sample_rate", "Sample Rate")),
+    "Role": "Unassigned",
     "Board Temperature": displayValue(getPropCaseInsensitive(root, "Board Temperature")),
     "Battery Voltage": displayValue(getPropCaseInsensitive(root, "Battery Voltage")),
     "Firmware Version": displayValue(getPropCaseInsensitive(root, "Firmware Version")),
@@ -289,8 +298,8 @@ function extractSummaryFromArrayBuffer(arrayBuffer, fileName) {
     const wfIncrement = displayValue(getPropCaseInsensitive(properties, "wf_increment"));
     const wfSamples = displayValue(getPropCaseInsensitive(properties, "wf_samples"));
 
-    row[`${channelName} Energy Density (mJ/cm^2)`] = energyDensity;
-    row[`${channelName} Peak Irradiance (mW/cm^2)`] = peakIrradiance;
+    row[energyColumn(channelName)] = energyDensity;
+    row[peakColumn(channelName)] = peakIrradiance;
 
     if (!row["Date of Measurement"] && wfStartTime) row["Date of Measurement"] = wfStartTime;
 
@@ -298,8 +307,8 @@ function extractSummaryFromArrayBuffer(arrayBuffer, fileName) {
       "File Name": fileName,
       "TDMS Name": row["TDMS Name"],
       "Channel": channelName,
-      "Energy Density (mJ/cm^2)": energyDensity,
-      "Peak Irradiance (mW/cm^2)": peakIrradiance,
+      [ENERGY_METRIC_LABEL]: energyDensity,
+      [PEAK_METRIC_LABEL]: peakIrradiance,
       "Waveform Start Time": wfStartTime,
       "Samples": wfSamples,
       "Waveform Increment (s)": wfIncrement,
@@ -313,12 +322,12 @@ function extractSummaryFromArrayBuffer(arrayBuffer, fileName) {
 
 function getOrderedColumns(rows) {
   const all = new Set();
-  rows.forEach(row => Object.keys(row).forEach(col => all.add(col)));
+  rows.forEach(row => Object.keys(row).forEach(col => { if (!isInternalColumn(col)) all.add(col); }));
   const ordered = [];
   for (const col of BASE_COLUMNS) if (all.has(col)) ordered.push(col);
 
   for (const channel of PREFERRED_UV_CHANNEL_ORDER) {
-    for (const metric of ["Energy Density (mJ/cm^2)", "Peak Irradiance (mW/cm^2)"]) {
+    for (const metric of [ENERGY_METRIC_LABEL, PEAK_METRIC_LABEL]) {
       const col = `${channel} ${metric}`;
       if (all.has(col)) ordered.push(col);
     }
@@ -330,8 +339,97 @@ function getOrderedColumns(rows) {
   ordered.push(...metricCols);
 
   for (const col of OPTIONAL_METADATA_COLUMNS) if (all.has(col) && !ordered.includes(col)) ordered.push(col);
-  ordered.push(...[...all].filter(col => !ordered.includes(col)));
+  ordered.push(...[...all].filter(col => !ordered.includes(col) && !isInternalColumn(col)));
   return ordered;
+}
+
+
+function makeRowId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function cleanRowsForExport(rows, columns) {
+  return rows.map(row => Object.fromEntries(columns.map(col => [col, row[col] ?? ""])));
+}
+
+function parseNumeric(value) {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  const cleaned = String(value).replace(/,/g, "").trim();
+  if (!cleaned) return null;
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function roundOutput(value, digits = 6) {
+  if (value === undefined || value === null || !Number.isFinite(value)) return "";
+  return Number(value.toFixed(digits));
+}
+
+function getUvMetricColumns(rows) {
+  const columns = getOrderedColumns(rows);
+  return columns.filter(col => col.includes("Energy Density") || col.includes("Peak Irradiance"));
+}
+
+function getControlRows(rows) {
+  return rows.filter(row => row["Role"] === "Control");
+}
+
+function getTestRows(rows) {
+  return rows.filter(row => row["Role"] === "Test");
+}
+
+function computeControlSummary(rows) {
+  const controls = getControlRows(rows);
+  const metricCols = getUvMetricColumns(rows);
+  return metricCols.map(metric => {
+    const values = controls.map(row => parseNumeric(row[metric])).filter(value => value !== null);
+    const avg = values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null;
+    const min = values.length ? Math.min(...values) : null;
+    const max = values.length ? Math.max(...values) : null;
+    return {
+      "Metric": metric,
+      "Control Count Used": values.length,
+      "Control Average": roundOutput(avg),
+      "Control Min": roundOutput(min),
+      "Control Max": roundOutput(max),
+      "Control Files": controls.map(row => row["File Name"]).join("; "),
+    };
+  });
+}
+
+function computePercentDifferenceRows(rows) {
+  const controls = getControlRows(rows);
+  const tests = getTestRows(rows);
+  const metricCols = getUvMetricColumns(rows);
+  const summary = computeControlSummary(rows);
+  const summaryByMetric = new Map(summary.map(row => [row["Metric"], row]));
+
+  return tests.map(test => {
+    const output = {
+      "Test File Name": test["File Name"] || "",
+      "Test TDMS Name": test["TDMS Name"] || "",
+      "Controls Used": controls.map(row => row["File Name"]).join("; "),
+      "Number of Control Files": controls.length,
+    };
+
+    for (const metric of metricCols) {
+      const testValue = parseNumeric(test[metric]);
+      const controlAverage = parseNumeric(summaryByMetric.get(metric)?.["Control Average"]);
+      output[`${metric} - Test Value`] = roundOutput(testValue);
+      output[`${metric} - Control Average`] = roundOutput(controlAverage);
+      output[`${metric} - % Difference vs Control Avg`] =
+        testValue !== null && controlAverage !== null && controlAverage !== 0
+          ? roundOutput(((testValue - controlAverage) / controlAverage) * 100, 3)
+          : "";
+    }
+    return output;
+  });
+}
+
+function emptySheetMessage(message) {
+  return [{ "Message": message }];
 }
 
 function rowsToCsv(rows, columns) {
@@ -369,6 +467,8 @@ if (typeof document !== "undefined") {
   const statusBox = document.getElementById("statusBox");
   const tableWrap = document.getElementById("tableWrap");
   const detailTableWrap = document.getElementById("detailTableWrap");
+  const diffTableWrap = document.getElementById("diffTableWrap");
+  const diffStatusBox = document.getElementById("diffStatusBox");
   const filesRead = document.getElementById("filesRead");
   const filesParsed = document.getElementById("filesParsed");
   const filesWithErrors = document.getElementById("filesWithErrors");
@@ -384,7 +484,7 @@ if (typeof document !== "undefined") {
     return state.rows.filter(row => Object.values(row).some(value => String(value || "").toLowerCase().includes(q)));
   }
 
-  function renderTable(rows, wrap, columns = null) {
+  function renderTable(rows, wrap, columns = null, options = {}) {
     if (!rows.length) {
       wrap.innerHTML = "";
       return;
@@ -401,7 +501,17 @@ if (typeof document !== "undefined") {
         if (col === "Notes") classes.push("notes-cell");
         if (col === "Read Status" && String(val).startsWith("OK")) classes.push("status-ok");
         if (col === "Read Status" && !String(val).startsWith("OK")) classes.push("status-error");
-        html.push(`<td class="${classes.join(" ")}">${escapeHtml(String(val))}</td>`);
+        if (options.roleSelect && col === "Role") {
+          const select = [`<select class="role-select" data-row-id="${escapeHtml(String(row.__id || ""))}">`];
+          for (const role of ROLE_VALUES) {
+            const selected = role === val ? " selected" : "";
+            select.push(`<option value="${escapeHtml(role)}"${selected}>${escapeHtml(role)}</option>`);
+          }
+          select.push("</select>");
+          html.push(`<td class="${classes.join(" ")}">${select.join("")}</td>`);
+        } else {
+          html.push(`<td class="${classes.join(" ")}">${escapeHtml(String(val))}</td>`);
+        }
       });
       html.push("</tr>");
     });
@@ -442,11 +552,27 @@ if (typeof document !== "undefined") {
       statusBox.textContent = `${okCount} file(s) parsed successfully.`;
     }
 
-    renderTable(rows, tableWrap);
+    renderTable(rows, tableWrap, null, { roleSelect: true });
     renderTable(state.channelRows, detailTableWrap, [
-      "File Name", "TDMS Name", "Channel", "Energy Density (mJ/cm^2)", "Peak Irradiance (mW/cm^2)",
+      "File Name", "TDMS Name", "Channel", ENERGY_METRIC_LABEL, PEAK_METRIC_LABEL,
       "Waveform Start Time", "Samples", "Waveform Increment (s)"
     ]);
+
+    const controls = getControlRows(state.rows);
+    const tests = getTestRows(state.rows);
+    const diffRows = computePercentDifferenceRows(state.rows);
+    if (!state.rows.length) {
+      diffStatusBox.className = "status-box";
+      diffStatusBox.textContent = "Upload files, then mark rows as Control or Test to preview percent differences.";
+    } else if (!controls.length || !tests.length) {
+      diffStatusBox.className = "status-box";
+      diffStatusBox.textContent = `Marked controls: ${controls.length}; marked tests: ${tests.length}. Select at least one control and one test to calculate percent differences.`;
+      diffTableWrap.innerHTML = "";
+    } else {
+      diffStatusBox.className = "status-box ok";
+      diffStatusBox.textContent = `Percent differences use the average of ${controls.length} selected control file(s). Formula: (test - control average) / control average × 100.`;
+      renderTable(diffRows, diffTableWrap);
+    }
   }
 
   async function handleFiles(fileList) {
@@ -458,10 +584,13 @@ if (typeof document !== "undefined") {
       try {
         const buffer = await file.arrayBuffer();
         const { row, channelRows } = extractSummaryFromArrayBuffer(buffer, file.name);
+        row.__id = makeRowId();
         state.rows.push(row);
         state.channelRows.push(...channelRows);
       } catch (err) {
         state.rows.push({
+          "__id": makeRowId(),
+          "Role": "Unassigned",
           "File Name": file.name,
           "TDMS Name": file.name.replace(/\.tdms$/i, ""),
           "Read Status": `ERROR: ${err.message || err}`,
@@ -507,6 +636,16 @@ if (typeof document !== "undefined") {
     render();
   });
 
+  tableWrap.addEventListener("change", event => {
+    if (!event.target.classList.contains("role-select")) return;
+    const rowId = event.target.getAttribute("data-row-id");
+    const row = state.rows.find(item => item.__id === rowId);
+    if (row) {
+      row["Role"] = event.target.value;
+      render();
+    }
+  });
+
   downloadCsvBtn.addEventListener("click", () => {
     if (!state.rows.length) return;
     const columns = getOrderedColumns(state.rows);
@@ -520,13 +659,37 @@ if (typeof document !== "undefined") {
       alert("Excel library did not load. Use Download CSV, or check the internet connection and refresh the page.");
       return;
     }
-    const columns = getOrderedColumns(state.rows);
-    const rows = state.rows.map(row => Object.fromEntries(columns.map(col => [col, row[col] ?? ""])));
-    const ws = XLSX.utils.json_to_sheet(rows, { header: columns });
-    ws["!cols"] = columns.map(col => ({ wch: col === "Notes" ? 55 : Math.min(Math.max(col.length + 4, 14), 32) }));
-    ws["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: state.rows.length, c: columns.length - 1 } }) };
+
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "TDMS Comparison");
+
+    const columns = getOrderedColumns(state.rows);
+    const comparisonRows = cleanRowsForExport(state.rows, columns);
+    const comparisonWs = XLSX.utils.json_to_sheet(comparisonRows, { header: columns });
+    comparisonWs["!cols"] = columns.map(col => ({ wch: col === "Notes" ? 55 : Math.min(Math.max(col.length + 4, 14), 34) }));
+    comparisonWs["!autofilter"] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: state.rows.length, c: columns.length - 1 } }) };
+    XLSX.utils.book_append_sheet(wb, comparisonWs, "TDMS Comparison");
+
+    const detailColumns = ["File Name", "TDMS Name", "Channel", ENERGY_METRIC_LABEL, PEAK_METRIC_LABEL, "Waveform Start Time", "Samples", "Waveform Increment (s)"];
+    const detailRows = state.channelRows.length ? cleanRowsForExport(state.channelRows, detailColumns) : emptySheetMessage("No channel-level rows were found.");
+    const detailWs = XLSX.utils.json_to_sheet(detailRows, { header: state.channelRows.length ? detailColumns : ["Message"] });
+    detailWs["!cols"] = (state.channelRows.length ? detailColumns : ["Message"]).map(col => ({ wch: Math.min(Math.max(col.length + 4, 16), 40) }));
+    XLSX.utils.book_append_sheet(wb, detailWs, "Channel Details");
+
+    const controlSummaryRows = getControlRows(state.rows).length
+      ? computeControlSummary(state.rows)
+      : emptySheetMessage("No rows were marked as Control when this workbook was created.");
+    const controlWs = XLSX.utils.json_to_sheet(controlSummaryRows);
+    controlWs["!cols"] = Object.keys(controlSummaryRows[0] || { Message: "" }).map(col => ({ wch: col === "Control Files" ? 55 : Math.min(Math.max(col.length + 4, 16), 40) }));
+    XLSX.utils.book_append_sheet(wb, controlWs, "Control Averages");
+
+    const diffRows = computePercentDifferenceRows(state.rows);
+    const diffSheetRows = diffRows.length
+      ? diffRows
+      : emptySheetMessage("Mark at least one row as Control and one row as Test before downloading to calculate percent differences.");
+    const diffWs = XLSX.utils.json_to_sheet(diffSheetRows);
+    diffWs["!cols"] = Object.keys(diffSheetRows[0] || { Message: "" }).map(col => ({ wch: col === "Controls Used" ? 55 : Math.min(Math.max(col.length + 4, 16), 42) }));
+    XLSX.utils.book_append_sheet(wb, diffWs, "Test vs Control % Diff");
+
     XLSX.writeFile(wb, `tdms_uv_comparison_${timestampForFilename()}.xlsx`);
   });
 
@@ -539,5 +702,7 @@ if (typeof module !== "undefined") {
     extractSummaryFromArrayBuffer,
     getOrderedColumns,
     rowsToCsv,
+    computeControlSummary,
+    computePercentDifferenceRows,
   };
 }
